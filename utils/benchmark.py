@@ -19,7 +19,7 @@ def main():
         sys.exit(INVALID_USAGE)
     machine, exe_dir, test_in, test_ok, out, reports, charts = sys.argv[1:]
     out_name = pathlib.Path(out).stem
-    chart_dir = os.path.join(charts, out_name)
+    chart_dir = os.path.join(charts, machine, out_name)
     ensure_dirs(chart_dir)
     cpu_counts = list(range(2, multiprocessing.cpu_count() + 1))
     test_name = pathlib.Path(test_in).stem
@@ -29,10 +29,9 @@ def main():
         stem = pathlib.Path(exe).stem
         legend.append(stem)
         executable = os.path.join(exe_dir, exe)
-        sub_out_path = os.path.join(out, stem)
-        sub_report_path = os.path.join(reports, stem)
-        sub_chart_path = os.path.join(reports, stem)
-        ensure_dirs(sub_out_path, sub_report_path, sub_chart_path)
+        sub_out_path = os.path.join(out, machine, stem)
+        sub_report_path = os.path.join(reports, machine, stem)
+        ensure_dirs(sub_out_path, sub_report_path)
         scores = []
         for c in cpu_counts:
             common = test_name + '_' + str(c).rjust(2, '0')
@@ -56,7 +55,7 @@ def main():
     plt.suptitle(out_name)
     plt.title(machine)
     plt.legend(legend)
-    plt.savefig(os.path.join(chart_dir, test_name + '.png'))
+    plt.savefig(os.path.join(chart_dir, test_name + '.png'), bbox_inches='tight')
 
 def ensure_dirs(*paths):
     for path in paths:

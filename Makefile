@@ -21,7 +21,7 @@ SANITY_OK=$(TEST_OK_DIR)/$(SANITY_TEST).ok
 SANITY_OUT_DIR=$(TEST_OUT_DIR)/sanity_check
 # please modify here to change its configuration: [z] [n] [d]
 # the sanity test is supposed to be fairly small
-SANITY_CONFIG=1000 100 1000000000
+SANITY_CONFIG=100 400 1000000000
 
 # please modify here to change the name of the stress test
 STRESS_TEST=big
