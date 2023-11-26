@@ -98,7 +98,7 @@ namespace {
 
 int main(int const argc, char const** const argv) {
     setup();
-    Usize num_cpus = 0;
+    Usize num_cpus = 1;
     if(argc == 2) {
         try {
             num_cpus = static_cast<Usize>(std::stoi(argv[1]));

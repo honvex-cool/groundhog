@@ -90,7 +90,12 @@ RM=rm -rf
 
 # abandon hope, all ye who enter here
 
-configurations: $(SOL_EXE_DIR)/sequential.x $(SOL_EXE_DIR)/openmp_middle_loop.x
+ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/sequential.x
+ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/openmp_middle_loop.x
+ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/threads_middle_loop.x
+ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/threads_middle_loop_barrier.x
+
+configurations: $(ALL_CONFIGURATIONS)
 
 $(OK_EXE): $(OK_SRC)
 	@mkdir -p $(EXE_DIR)
