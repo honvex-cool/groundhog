@@ -1,39 +1,60 @@
-# please modify here to decide where to put tests
+# please modify here to decide where to put tests and their output
 TEST_DIR=tests
 TEST_IN_DIR=$(TEST_DIR)/in
 TEST_OK_DIR=$(TEST_DIR)/ok
+TEST_OUT_DIR=$(TEST_DIR)/out
+REPORTS=reports
+CHARTS=charts
 
 # please modify here to change the test generator
 # it is expected to have the following interface:
-# python3 $(GENERATOR) [seed] [test_path] [num_testcases] [n] [d]
+# python3 $(GENERATOR) [seed] [test_path] [z] [n] [d]
 GENERATOR=utils/generate.py
 
 # the seed used for testing
 SEED=42
 
-# please modify here to change the name of the correctness test
-CORRECTNESS_TEST=many_small
+# please modify here to change the name of the sanity test
+SANITY_TEST=many_small
+SANITY_IN=$(TEST_IN_DIR)/$(SANITY_TEST).in
+SANITY_OK=$(TEST_OK_DIR)/$(SANITY_TEST).ok
+SANITY_OUT_DIR=$(TEST_OUT_DIR)/sanity_check
 # please modify here to change its configuration: [z] [n] [d]
-CORRECTNESS_CONFIG=1000 100 1000000000
+# the sanity test is supposed to be fairly small
+SANITY_CONFIG=1000 100 1000000000
 
 # please modify here to change the name of the stress test
 STRESS_TEST=big
+STRESS_IN=$(TEST_IN_DIR)/$(STRESS_TEST).in
+STRESS_OK=$(TEST_OK_DIR)/$(STRESS_TEST).ok
+STRESS_OUT_DIR=$(TEST_OUT_DIR)/stress
 # please modify here to change its configuration: [z] [n] [d]
 STRESS_CONFIG=5 4000 1000000000
 
-validate: $(TEST_OK_DIR)/$(CORRECTNESS_TEST).ok
+# this command is designed for running fairly quick and fairly convincing sanity tests
+# so that we can catch errors early and avoid wasting time with wrong answers on the stress tests
+sanity_check: configurations $(SANITY_OK)
+	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(SOL_EXE_DIR) $(SANITY_IN) $(SANITY_OK) $(SANITY_OUT_DIR)/solutions $(REPORTS) $(CHARTS)
+
+stress: configurations $(STRESS_OK)
+	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(SOL_EXE_DIR) $(STRESS_IN) $(STRESS_OK) $(STRESS_OUT_DIR)/solutions $(REPORTS) $(CHARTS)
 
 # generate tests according to their configurations
-generate: $(TEST_IN_DIR)/$(CORRECTNESS_TEST).in $(TEST_IN_DIR)/$(STRESS_TEST).in
+generate: $(SANITY_IN) $(STRESS_IN)
 
 # obtain the correct answers using the model solution (verified by Satori)
 # careful! the model solution is not parallelized, so it may take a while!
-solve: $(TEST_OK_DIR)/$(CORRECTNESS_TEST).ok $(TEST_OK_DIR)/$(STRESS_TEST).ok
+solve: $(SANITY_OK) $(STRESS_OK)
 
-clean:
+clean: clean_execs clean_outputs
+
+clean_execs:
 	$(RM) $(EXE_DIR)
 
-# careful! regenerating removed tests may take a while!
+clean_outputs:
+	$(RM) $(TEST_OUT_DIR) $(REPORTS) $(CHARTS)
+
+# careful! computing correct answers for removed tests may take a while!
 reset:
 	$(RM) $(TEST_DIR)
 
@@ -69,6 +90,8 @@ RM=rm -rf
 
 # abandon hope, all ye who enter here
 
+configurations: $(SOL_EXE_DIR)/sequential.x $(SOL_EXE_DIR)/openmp_middle_loop.x
+
 $(OK_EXE): $(OK_SRC)
 	@mkdir -p $(EXE_DIR)
 	$(COMPILE) $(OK_SRC) -o $(OK_EXE)
@@ -81,18 +104,18 @@ $(SOL_EXE_DIR)/%.x: $(SOL_DEPS) $(SOL_SRC_DIR)/%.cpp
 	@mkdir -p $(SOL_EXE_DIR)
 	$(COMPILE_CONFIGURATION) $(SOL_SRC_DIR)/$*.cpp $(COMMON_REC_SRC) -o $@
 
-$(TEST_IN_DIR)/$(CORRECTNESS_TEST).in: $(GENERATOR)
+$(SANITY_IN): $(GENERATOR)
 	@mkdir -p $(TEST_IN_DIR)
-	python3 $(GENERATOR) $(SEED) $@ $(CORRECTNESS_CONFIG)
+	python3 $(GENERATOR) $(SEED) $@ $(SANITY_CONFIG)
 
-$(TEST_IN_DIR)/$(STRESS_TEST).in: $(GENERATOR)
+$(STRESS_IN): $(GENERATOR)
 	@mkdir -p $(TEST_IN_DIR)
 	python3 $(GENERATOR) $(SEED) $@ $(STRESS_CONFIG)
 
-$(TEST_OK_DIR)/$(CORRECTNESS_TEST).ok: $(TEST_IN_DIR)/$(CORRECTNESS_TEST).in $(OK_EXE)
+$(SANITY_OK): $(SANITY_IN) $(OK_EXE)
 	@mkdir -p $(TEST_OK_DIR)
-	$(OK_EXE) < $(TEST_IN_DIR)/$(CORRECTNESS_TEST).in > $@
+	$(OK_EXE) < $(SANITY_IN) > $@
 
-$(TEST_OK_DIR)/$(STRESS_TEST).ok: $(TEST_IN_DIR)/$(STRESS_TEST).in $(OK_EXE)
+$(STRESS_OK): $(STRESS_IN) $(OK_EXE)
 	@mkdir -p $(TEST_OK_DIR)
-	$(OK_EXE) < $(TEST_IN_DIR)/$(STRESS_TEST).in > $@
+	$(OK_EXE) < $(STRESS_IN) > $@

@@ -3,3 +3,5 @@
 *.out
 *.ok
 tests/
+reports/
+charts/
