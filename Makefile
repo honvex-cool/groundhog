@@ -87,7 +87,7 @@ OK_SRC=submits/iterative_solution_recursive_recovery_ok_8805501.cpp
 OK_EXE=$(EXE_DIR)/ok.x
 
 CXX=g++
-CXXFLAGS=-std=c++17 -O3 -Wall -Wextra -Werror -lpthread
+CXXFLAGS=-std=c++17 -O3 -Wall -Wextra -Werror -pthread
 OPENMP_FLAGS=-fopenmp
 COMPILE=$(CXX) $(CXXFLAGS)
 COMPILE_CONFIGURATION=$(COMPILE) -I $(HPP_DIR) main.cpp
