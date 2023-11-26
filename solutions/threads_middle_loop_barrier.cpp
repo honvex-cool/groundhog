@@ -1,47 +1,11 @@
 #include <problem.hpp>
 
 #include <algorithm>
-#include <atomic>
-#include <condition_variable>
 #include <thread>
 #include <utility>
 #include <vector>
 
 #include <iostream>
-
-namespace {
-    // adapted from https://github.com/kirksaunders/barrier/blob/master/barrier.hpp
-    class Barrier {
-    public:
-        explicit Barrier(Usize const width)
-            : width(width)
-            , remaining(this->width)
-            , current_version(0) {
-        }
-
-        void operator()() {
-            std::unique_lock<std::mutex> lock(arrival);
-            auto const waiting_version = current_version;
-            if(--remaining > 0)
-                changed.wait(
-                    lock,
-                    [this, waiting_version]() -> bool { return current_version > waiting_version; }
-                );
-            else {
-                remaining = width;
-                current_version++;
-                changed.notify_all();
-            }
-        }
-
-    private:
-        std::condition_variable changed;
-        Usize width;
-        Usize remaining;
-        Usize current_version;
-        std::mutex arrival;
-    };
-}
 
 void solve(
     std::vector<Num> const& cuts,
@@ -51,7 +15,7 @@ void solve(
 ) {
     auto const n = cuts.size();
     auto const rows_per_thread = (n + num_cpus - 1) / num_cpus;
-    Barrier barrier(num_cpus);
+    ReusableBarrier barrier(num_cpus);
     std::vector<std::thread> workers;
     workers.reserve(num_cpus);
     for(Usize t = 0; t < num_cpus; t++) {

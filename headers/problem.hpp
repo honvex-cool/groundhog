@@ -1,7 +1,9 @@
 #ifndef _PROBLEM_HPP_
 #define _PROBLEM_HPP_
 
+#include <condition_variable>
 #include <limits>
+#include <mutex>
 #include <utility>
 #include <vector>
 
@@ -11,6 +13,40 @@
 
 using Usize = unsigned int;
 Usize constexpr NO_INDEX = std::numeric_limits<Usize>::max();
+
+// adapted from https://github.com/kirksaunders/barrier/blob/master/barrier.hpp
+class ReusableBarrier {
+public:
+    explicit ReusableBarrier(Usize const width)
+        : width(width)
+        , current_version(0)
+        , remaining(width) {
+    }
+
+    void operator()() {
+        std::unique_lock<std::mutex> lock(arrival);
+        auto const waiting_version = current_version;
+        if(--remaining > 0)
+            changed.wait(
+                lock,
+                [this, waiting_version]() -> bool {
+                    return current_version > waiting_version;
+                }
+            );
+        else {
+            remaining = width;
+            current_version++;
+            changed.notify_all();
+        }
+    }
+
+private:
+    std::condition_variable changed;
+    Usize width;
+    Usize current_version;
+    Usize remaining;
+    std::mutex arrival;
+};
 
 template<typename T>
 class Grid {

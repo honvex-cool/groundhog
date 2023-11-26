@@ -43,13 +43,16 @@ namespace {
         return cuts;
     }
 
-    std::pair<Duration, Duration> process_testcase(Usize const num_cpus) {
+    std::pair<Duration, Duration> process_testcase(
+        Usize const solving_cpus,
+        Usize const recovering_cpus
+    ) {
         auto const cuts = read_testcase(std::cin);
         auto const n = cuts.size();
         Grid<Num> costs(n, n, 0);
         Grid<Usize> indices(n, n, 0);
         auto const solution_start = std::chrono::steady_clock::now();
-        solve(cuts, costs, indices, num_cpus);
+        solve(cuts, costs, indices, solving_cpus);
         auto const solution_time = std::chrono::steady_clock::now() - solution_start;
         auto const recovery_start = std::chrono::steady_clock::now();
 #ifdef _SOLUTION_AS_LIST_
@@ -58,7 +61,7 @@ namespace {
         std::vector<Usize> ordered;
         ordered.reserve(n);
 #endif
-        recover(indices, n, ordered, num_cpus);
+        recover(indices, n, ordered, recovering_cpus);
         std::vector<Num> answer;
         answer.reserve(n);
         for(auto const index : ordered)
@@ -68,7 +71,7 @@ namespace {
         return { solution_time, recovery_time };
     }
 
-    void run(Usize const num_cpus) {
+    void run(Usize const solving_cpus, Usize const recovering_cpus) {
         Usize num_testcases;
         std::cin >> num_testcases;
         Duration solution_min = Duration::max();
@@ -78,7 +81,7 @@ namespace {
         Duration recovery_max = Duration::min();
         Duration recovery_total = Duration::zero();
         for(Usize _ = 0; _ < num_testcases; _++) {
-            auto const [solution, recovery] = process_testcase(num_cpus);
+            auto const [solution, recovery] = process_testcase(solving_cpus, recovering_cpus);
             solution_min = std::min(solution_min, solution);
             solution_max = std::max(solution_max, solution);
             solution_total += solution;
@@ -98,14 +101,21 @@ namespace {
 
 int main(int const argc, char const** const argv) {
     setup();
-    Usize num_cpus = 1;
-    if(argc == 2) {
+    Usize solving_cpus = 1, recovering_cpus = 1;
+    if(argc >= 2) {
         try {
-            num_cpus = static_cast<Usize>(std::stoi(argv[1]));
+            solving_cpus = static_cast<Usize>(std::stoi(argv[1]));
         } catch(...) {
             return EXIT_FAILURE;
         }
     }
-    run(num_cpus);
+    if(argc >= 3) {
+        try {
+            recovering_cpus = static_cast<Usize>(std::stoi(argv[2]));
+        } catch(...) {
+            return EXIT_FAILURE;
+        }
+    }
+    run(solving_cpus, recovering_cpus);
     return EXIT_SUCCESS;
 }
