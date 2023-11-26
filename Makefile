@@ -29,7 +29,7 @@ STRESS_IN=$(TEST_IN_DIR)/$(STRESS_TEST).in
 STRESS_OK=$(TEST_OK_DIR)/$(STRESS_TEST).ok
 STRESS_OUT_DIR=$(TEST_OUT_DIR)/stress
 # please modify here to change its configuration: [z] [n] [d]
-STRESS_CONFIG=5 4000 1000000000
+STRESS_CONFIG=3 4000 1000000000
 
 # this command is designed for running fairly quick and fairly convincing sanity tests
 # so that we can catch errors early and avoid wasting time with wrong answers on the stress tests

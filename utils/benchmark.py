@@ -11,8 +11,8 @@ RUNTIME_ERROR = 4
 
 INDIFFERENT_NAME = 'sequential'
 
-MODIFIER = 0.001
-UNIT = 'μs'
+MODIFIER = 1e-9
+UNIT = 's'
 
 def main():
     if len(sys.argv) != 8:
@@ -38,7 +38,7 @@ def main():
             common = test_name + '_' + str(c).rjust(2, '0')
             test_out = os.path.join(sub_out_path, common + '.out')
             report_out = os.path.join(sub_report_path, common + '.txt')
-            run_cmd = f'{executable} < {test_in} > {test_out} 2> {report_out}'
+            run_cmd = f'{executable} {c} < {test_in} > {test_out} 2> {report_out}'
             if os.waitstatus_to_exitcode(os.system(run_cmd)) != 0:
                 sys.exit(RUNTIME_ERROR)
             check_cmd = f'diff {test_out} {test_ok}'
@@ -50,7 +50,7 @@ def main():
                 scores = [avg for _ in cpu_counts]
                 break
             scores.append(avg)
-        plt.plot(cpu_counts, scores, color=color)
+        plt.plot(cpu_counts, [v * MODIFIER for v in scores], color=color)
     plt.xlabel('available CPUs')
     plt.ylabel(f'time ({UNIT})')
     plt.suptitle(out_name)
