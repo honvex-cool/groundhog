@@ -31,8 +31,8 @@ def main():
         stem = pathlib.Path(exe).stem
         legend.append(stem)
         executable = os.path.join(exe_dir, exe)
-        sub_out_path = os.path.join(out, machine, stem)
-        sub_report_path = os.path.join(reports, machine, stem)
+        sub_out_path = os.path.join(out, machine, out_name, stem)
+        sub_report_path = os.path.join(reports, machine, out_name, stem)
         ensure_dirs(sub_out_path, sub_report_path)
         scores = []
         for c in cpu_counts:
@@ -43,6 +43,7 @@ def main():
             common = test_name + '_' + str(c).rjust(2, '0')
             test_out = os.path.join(sub_out_path, common + '.out')
             report_out = os.path.join(sub_report_path, common + '.txt')
+            report_com = os.path.join(sub_report_path, common + '_avg.txt')
             run_cmd = f'{executable} {cpu_config} < {test_in} > {test_out} 2> {report_out}'
             if os.waitstatus_to_exitcode(os.system(run_cmd)) != 0:
                 sys.exit(RUNTIME_ERROR)
@@ -51,6 +52,8 @@ def main():
                 sys.exit(WRONG_ANSWER)
             summary = as_dictionary(report_out)
             avg = summary[f'{category}_tot'] / summary['n_tests']
+            with open(report_com, 'w') as f:
+                f.write(f'avg {avg}\n')
             if stem == INDIFFERENT_NAME:
                 scores = [avg for _ in cpu_counts]
                 break

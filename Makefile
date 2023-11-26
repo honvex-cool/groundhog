@@ -8,7 +8,7 @@ CHARTS=charts
 
 # please modify here to change the test generator
 # it is expected to have the following interface:
-# python3 $(GENERATOR) [seed] [test_path] [z] [n] [d]
+# python3 $(GENERATOR) seed test_path z n d
 GENERATOR=utils/generate.py
 
 # the seed used for testing
@@ -19,7 +19,7 @@ SANITY_TEST=many_small
 SANITY_IN=$(TEST_IN_DIR)/$(SANITY_TEST).in
 SANITY_OK=$(TEST_OK_DIR)/$(SANITY_TEST).ok
 SANITY_OUT_DIR=$(TEST_OUT_DIR)/sanity_check
-# please modify here to change its configuration: [z] [n] [d]
+# please modify here to change its configuration: z n d
 # the sanity test is supposed to be fairly small
 SANITY_CONFIG=100 400 1000000000
 
@@ -28,16 +28,20 @@ STRESS_TEST=big
 STRESS_IN=$(TEST_IN_DIR)/$(STRESS_TEST).in
 STRESS_OK=$(TEST_OK_DIR)/$(STRESS_TEST).ok
 STRESS_OUT_DIR=$(TEST_OUT_DIR)/stress
-# please modify here to change its configuration: [z] [n] [d]
+# please modify here to change its configuration: z n d
 STRESS_CONFIG=3 4000 1000000000
+
+full: sanity_check stress
 
 # this command is designed for running fairly quick and fairly convincing sanity tests
 # so that we can catch errors early and avoid wasting time with wrong answers on the stress tests
 sanity_check: configurations $(SANITY_OK)
 	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(SOL_EXE_DIR) $(SANITY_IN) $(SANITY_OK) $(SANITY_OUT_DIR)/solutions $(REPORTS) $(CHARTS)
+	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(REC_EXE_DIR) $(SANITY_IN) $(SANITY_OK) $(SANITY_OUT_DIR)/recoveries $(REPORTS) $(CHARTS)
 
 stress: configurations $(STRESS_OK)
 	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(SOL_EXE_DIR) $(STRESS_IN) $(STRESS_OK) $(STRESS_OUT_DIR)/solutions $(REPORTS) $(CHARTS)
+	python3 utils/benchmark.py $(if $(machine),$(machine),machine) $(REC_EXE_DIR) $(STRESS_IN) $(STRESS_OK) $(STRESS_OUT_DIR)/recoveries $(REPORTS) $(CHARTS)
 
 # generate tests according to their configurations
 generate: $(SANITY_IN) $(STRESS_IN)
@@ -67,11 +71,13 @@ HPP_DIR=headers
 HEADERS=$(HPP_DIR)/problem.hpp
 
 SOL_SRC_DIR=solutions
-
 REC_SRC_DIR=recoveries
+
+COMMON_SOL_SRC=$(SOL_SRC_DIR)/threads_middle_loop_barrier.cpp
 COMMON_REC_SRC=$(REC_SRC_DIR)/recursive.cpp
 
 SOL_DEPS=main.cpp $(COMMON_REC_SRC) $(HEADERS)
+REC_DEPS=main.cpp $(COMMON_SOL_SRC) $(HEADERS)
 
 EXE_DIR=execs
 SOL_EXE_DIR=$(EXE_DIR)/solutions
@@ -95,6 +101,10 @@ ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/openmp_middle_loop.x
 ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/openmp_middle_loop_barrier.x
 ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/threads_middle_loop.x
 ALL_CONFIGURATIONS+=$(SOL_EXE_DIR)/threads_middle_loop_barrier.x
+ALL_CONFIGURATIONS+=$(REC_EXE_DIR)/iterative.x
+ALL_CONFIGURATIONS+=$(REC_EXE_DIR)/recursive.x
+ALL_CONFIGURATIONS+=$(REC_EXE_DIR)/threaded_iterative.x
+ALL_CONFIGURATIONS+=$(REC_EXE_DIR)/threaded_recursive.x
 
 configurations: $(ALL_CONFIGURATIONS)
 
@@ -109,6 +119,14 @@ $(SOL_EXE_DIR)/openmp%.x: $(SOL_DEPS) $(SOL_SRC_DIR)/openmp%.cpp
 $(SOL_EXE_DIR)/%.x: $(SOL_DEPS) $(SOL_SRC_DIR)/%.cpp
 	@mkdir -p $(SOL_EXE_DIR)
 	$(COMPILE_CONFIGURATION) $(SOL_SRC_DIR)/$*.cpp $(COMMON_REC_SRC) -o $@
+
+$(REC_EXE_DIR)/%.x: $(REC_DEPS) $(REC_SRC_DIR)/%.cpp
+	@mkdir -p $(REC_EXE_DIR)
+	$(COMPILE_CONFIGURATION) $(REC_SRC_DIR)/$*.cpp $(COMMON_SOL_SRC) -o $@
+
+$(REC_EXE_DIR)/threaded%.x: $(REC_DEPS) $(REC_SRC_DIR)/threaded%.cpp
+	@mkdir -p $(REC_EXE_DIR)
+	$(COMPILE_CONFIGURATION) -D_SOLUTION_AS_LIST_ $(REC_SRC_DIR)/threaded$*.cpp $(COMMON_SOL_SRC) -o $@
 
 $(SANITY_IN): $(GENERATOR)
 	@mkdir -p $(TEST_IN_DIR)
