@@ -45,10 +45,10 @@ def main():
             report_out = os.path.join(sub_report_path, common + '.txt')
             report_com = os.path.join(sub_report_path, common + '_avg.txt')
             run_cmd = f'{executable} {cpu_config} < {test_in} > {test_out} 2> {report_out}'
-            if os.waitstatus_to_exitcode(os.system(run_cmd)) != 0:
+            if os.system(run_cmd) != 0:
                 sys.exit(RUNTIME_ERROR)
             check_cmd = f'diff {test_out} {test_ok}'
-            if os.waitstatus_to_exitcode(os.system(check_cmd)) != 0:
+            if os.system(check_cmd) != 0:
                 sys.exit(WRONG_ANSWER)
             summary = as_dictionary(report_out)
             avg = summary[f'{category}_tot'] / summary['n_tests']
